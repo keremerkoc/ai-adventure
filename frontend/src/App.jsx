@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { startStory, choose } from "./api/mockStoryApi";
 
 function App() {
   const [theme, setTheme] = useState("");
