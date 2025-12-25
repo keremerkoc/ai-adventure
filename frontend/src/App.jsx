@@ -1,69 +1,147 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { startStory, choose } from "./api/storyApi";
+import ThemeForm from "./components/ThemeForm";
+import StoryView from "./components/StoryView";
+import AdventureLog from "./components/AdventureLog";
+import "./App.css";
 
 function App() {
   const [theme, setTheme] = useState("");
+  const [storyId, setStoryId] = useState(null);
   const [story, setStory] = useState("");
   const [choices, setChoices] = useState([]);
 
-  function handleStart() {
-    // Simulate backend response
-    setStory(`You enter a world of ${theme}. Neon lights flicker as danger lurks nearby.`);
-    setChoices([
-      "Explore the city",
-      "Hide in the shadows",
-      "Call for backup"
-    ]);
+  const [turn, setTurn] = useState(0);
+  const [logEntries, setLogEntries] = useState([]);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const endRef = useRef(null);
+  const hasStory = story !== "";
+
+  useEffect(() => {
+    if (hasStory) endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [story, hasStory]);
+
+  async function handleStart() {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const res = await startStory(theme);
+
+      setStoryId(res.story_id);
+      setStory(res.paragraph);
+      setChoices(res.choices);
+
+      setTurn(1);
+      setLogEntries([{ paragraph: res.paragraph, choice: null }]);
+    } catch (e) {
+      setError(e?.message || "Something went wrong.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  function handleChoice(choice) {
-    // Simulate next step
-    setStory(`You chose to "${choice}". The story continues...`);
-    setChoices([
-      "Keep going",
-      "Change direction",
-      "End adventure"
-    ]);
+  async function handleChoice(choiceText) {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const res = await choose(storyId, choiceText);
+
+      setStory(res.paragraph);
+      setChoices(res.choices);
+
+      setTurn((t) => t + 1);
+      setLogEntries((prev) => [
+        ...prev,
+        { paragraph: res.paragraph, choice: choiceText },
+      ]);
+    } catch (e) {
+      setError(e?.message || "Something went wrong.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleRestart() {
+    setTheme("");
+    setStoryId(null);
+    setStory("");
+    setChoices([]);
+    setTurn(0);
+    setError("");
+    setIsLoading(false);
+    setLogEntries([]);
+  }
+
+  function handleClearLog() {
+    setLogEntries([]);
   }
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "Arial", maxWidth: "600px" }}>
-      <h1>AI Adventure Game</h1>
-
-      {story === "" && (
-        <>
-          <input
-            type="text"
-            placeholder="Enter a theme (e.g. Cyberpunk Space)"
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            style={{ padding: "0.5rem", width: "100%" }}
-          />
-
-          <br /><br />
-
-          <button onClick={handleStart} style={{ padding: "0.5rem 1rem" }}>
-            Start Adventure
-          </button>
-        </>
-      )}
-
-      {story !== "" && (
-        <>
-          <p style={{ marginTop: "1.5rem" }}>{story}</p>
-
+    <div className="page">
+      <div className="card">
+        <header className="header">
           <div>
-            {choices.map((choice, index) => (
-              <button
-                key={index}
-                onClick={() => handleChoice(choice)}
-                style={{ display: "block", margin: "0.5rem 0", padding: "0.5rem 1rem" }}
-              >
-                {choice}
-              </button>
-            ))}
+            <h1 className="title">AI Adventure Game</h1>
+            <p className="subtitle">
+              Enter a theme. The game generates a story and choices.
+            </p>
           </div>
-        </>
-      )}
+
+          {hasStory && (
+            <div className="meta">
+              <div className="pill">
+                Theme: <strong>{theme}</strong>
+              </div>
+              <div className="pill">
+                Turn: <strong>{turn}</strong>
+              </div>
+            </div>
+          )}
+        </header>
+
+        {!hasStory && (
+          <ThemeForm
+            theme={theme}
+            setTheme={setTheme}
+            isLoading={isLoading}
+            onStart={handleStart}
+          />
+        )}
+
+        {error && (
+          <div className="errorBox">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {hasStory && (
+          <div className="grid">
+            {/* LEFT: Main story panel */}
+            <div className="panel">
+              <StoryView
+                story={story}
+                choices={choices}
+                isLoading={isLoading}
+                onChoose={handleChoice}
+                onRestart={handleRestart}
+              />
+              <div ref={endRef} />
+            </div>
+
+            {/* RIGHT: Adventure log panel */}
+            <AdventureLog
+              theme={theme}
+              entries={logEntries}
+              onClear={handleClearLog}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
