@@ -89,3 +89,51 @@
   text-align: left;
   margin-top: 10px;
 }
+.grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  border: 1px solid #e6e6e6;
+  border-radius: 16px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.panelTitle {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #111827;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.logItem {
+  border: 1px solid #eef0f4;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fafbff;
+  margin-top: 10px;
+}
+
+.logChoice {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.logChoice strong {
+  color: #111827;
+}
