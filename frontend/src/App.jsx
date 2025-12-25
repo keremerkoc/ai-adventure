@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { startStory, choose } from "./api/mockStoryApi";
+import { useEffect, useRef, useState } from "react";
+import { startStory, choose } from "./api/storyApi";
 import ThemeForm from "./components/ThemeForm";
 import StoryView from "./components/StoryView";
+import "./App.css";
 
 function App() {
   const [theme, setTheme] = useState("");
@@ -9,8 +10,16 @@ function App() {
   const [story, setStory] = useState("");
   const [choices, setChoices] = useState([]);
 
+  const [turn, setTurn] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const endRef = useRef(null);
+  const hasStory = story !== "";
+
+  useEffect(() => {
+    if (hasStory) endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [story, hasStory]);
 
   async function handleStart() {
     setError("");
@@ -21,6 +30,7 @@ function App() {
       setStoryId(res.story_id);
       setStory(res.paragraph);
       setChoices(res.choices);
+      setTurn(1);
     } catch (e) {
       setError(e.message || "Something went wrong.");
     } finally {
@@ -36,6 +46,7 @@ function App() {
       const res = await choose(storyId, choiceText);
       setStory(res.paragraph);
       setChoices(res.choices);
+      setTurn((t) => t + 1);
     } catch (e) {
       setError(e.message || "Something went wrong.");
     } finally {
@@ -48,58 +59,51 @@ function App() {
     setStoryId(null);
     setStory("");
     setChoices([]);
+    setTurn(0);
     setError("");
     setIsLoading(false);
   }
 
-  const hasStory = story !== "";
-
   return (
-    <div
-      style={{
-        padding: "2rem",
-        fontFamily: "Arial",
-        maxWidth: 700,
-        margin: "0 auto",
-      }}
-    >
-      <h1 style={{ marginBottom: "0.25rem" }}>AI Adventure Game</h1>
-      <p style={{ marginTop: 0, opacity: 0.8 }}>
-        Enter a theme. The game generates a story and choices.
-      </p>
+    <div className="page">
+      <div className="card">
+        <header className="header">
+          <div>
+            <h1 className="title">AI Adventure Game</h1>
+            <p className="subtitle">Enter a theme. The game generates a story and choices.</p>
+          </div>
 
-      {!hasStory && (
-        <ThemeForm
-          theme={theme}
-          setTheme={setTheme}
-          isLoading={isLoading}
-          onStart={handleStart}
-        />
-      )}
+          {hasStory && (
+            <div className="meta">
+              <div className="pill">Theme: <strong>{theme}</strong></div>
+              <div className="pill">Turn: <strong>{turn}</strong></div>
+            </div>
+          )}
+        </header>
 
-      {error && (
-        <div
-          style={{
-            marginTop: 16,
-            padding: 12,
-            border: "1px solid #ddd",
-            borderRadius: 8,
-            background: "#fff7f7",
-          }}
-        >
-          <strong>Error:</strong> {error}
-        </div>
-      )}
+        {!hasStory && (
+          <ThemeForm theme={theme} setTheme={setTheme} isLoading={isLoading} onStart={handleStart} />
+        )}
 
-      {hasStory && (
-        <StoryView
-          story={story}
-          choices={choices}
-          isLoading={isLoading}
-          onChoose={handleChoice}
-          onRestart={handleRestart}
-        />
-      )}
+        {error && (
+          <div className="errorBox">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {hasStory && (
+          <>
+            <StoryView
+              story={story}
+              choices={choices}
+              isLoading={isLoading}
+              onChoose={handleChoice}
+              onRestart={handleRestart}
+            />
+            <div ref={endRef} />
+          </>
+        )}
+      </div>
     </div>
   );
 }
